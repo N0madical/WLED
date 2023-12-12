@@ -11,6 +11,7 @@ var csel = 0; // selected color slot (0-2)
 var currentPreset = -1;
 var lastUpdate = 0;
 var segCount = 0, ledCount = 0, lowestUnused = 0, maxSeg = 0, lSeg = 0;
+var advMode = true;
 var pcMode = false, pcModeA = false, lastw = 0, wW;
 var tr = 7;
 var d = document;
@@ -234,6 +235,9 @@ function onLoad()
 	resetPUtil();
 
 	if (localStorage.getItem('pcm') == "true" || (!/Mobi/.test(navigator.userAgent) && localStorage.getItem('pcm') == null)) togglePcMode(true);
+	if (localStorage.getItem('advm') == "true" || (!/Mobi/.test(navigator.userAgent) && localStorage.getItem('advm') == null)) advMode = false;
+	toggleAdvMode()
+
 	applyCfg();
 	if (cfg.comp.hdays) { //load custom holiday list
 		fetch(getURL("/holidays.json"), {	// may be loaded from external source
@@ -566,6 +570,7 @@ function populatePresets(fromls)
 	if (!pJson) {setTimeout(loadPresets,250); return;}
 	delete pJson["0"];
 	var cn = "";
+	var cn2 = ""
 	var arr = Object.entries(pJson);
 	arr.sort(cmpP);
 	pQL = [];
@@ -579,17 +584,28 @@ function populatePresets(fromls)
 		if (qll) pQL.push([i, qll, pName(i)]);
 		is.push(i);
 
-		cn += `<div class="pres lstI" id="p${i}o">`;
-		if (cfg.comp.pid) cn += `<div class="pid">${i}</div>`;
-		cn += `<div class="pname lstIname" onclick="setPreset(${i})">${isPlaylist(i)?"<i class='icons btn-icon'>&#xe139;</i>":""}${pName(i)}
-	<i class="icons edit-icon flr" id="p${i}nedit" onclick="tglSegn(${i+100})">&#xe2c6;</i></div>
-	<i class="icons e-icon flr" id="sege${i+100}" onclick="expand(${i+100})">&#xe395;</i>
-	<div class="presin lstIcontent" id="seg${i+100}"></div>
-</div>`;
+		if(pName(i).includes("⚙️")) {
+			cn2 += `<div class="pres lstI" id="p${i}o">`;
+			if (cfg.comp.pid) cn2 += `<div class="pid">${i}</div>`;
+			cn2 += `<div class="pname lstIname" onclick="setPreset(${i})">${isPlaylist(i)?"<i class='icons btn-icon'>&#xe139;</i>":""}${pName(i)}
+				<i class="icons edit-icon flr" id="p${i}nedit" onclick="tglSegn(${i+100})">&#xe2c6;</i></div>
+				<i class="icons e-icon flr" id="sege${i+100}" onclick="expand(${i+100})">&#xe395;</i>
+				<div class="presin lstIcontent" id="seg${i+100}"></div>
+			</div>`;
+		} else {
+			cn += `<div class="pres lstI" id="p${i}o">`;
+			if (cfg.comp.pid) cn += `<div class="pid">${i}</div>`;
+			cn += `<div class="pname lstIname" onclick="setPreset(${i})">${isPlaylist(i)?"<i class='icons btn-icon'>&#xe139;</i>":""}${pName(i)}
+				<i class="icons edit-icon flr" id="p${i}nedit" onclick="tglSegn(${i+100})">&#xe2c6;</i></div>
+				<i class="icons e-icon flr" id="sege${i+100}" onclick="expand(${i+100})">&#xe395;</i>
+				<div class="presin lstIcontent" id="seg${i+100}"></div>
+			</div>`;
+		}
 		pNum++;
 	}
 
 	gId('pcont').innerHTML = cn;
+	gId('fxlist').innerHTML += cn2;
 	if (pNum > 0) {
 		if (pmtLS != pmt && pmt != 0) {
 			localStorage.setItem("wledPmt", pmt);
@@ -1937,8 +1953,6 @@ ${makePlSel(plJson[i].end?plJson[i].end:0, true)}
 	}
 
 	return `<input type="text" class="ptxt ${i==0?'show':''}" id="p${i}txt" autocomplete="off" maxlength=32 value="${(i>0)?pName(i):""}" placeholder="Enter name..."/>
-<div class="c">Quick load label: <input type="text" class="stxt" maxlength=2 value="${qlName(i)}" id="p${i}ql" autocomplete="off"/></div>
-<div class="h">(leave empty for no Quick load button)</div>
 <div ${pl&&i==0?"style='display:none'":""}>
 <label class="check revchkl">
 	<span class="lstIname">
@@ -2362,8 +2376,8 @@ function saveP(i,pl)
 	}
 
 	obj.psave = pI; obj.n = pN;
-	var pQN = gId(`p${i}ql`).value;
-	if (pQN.length > 0) obj.ql = pQN;
+	// var pQN = gId(`p${i}ql`).value;
+	// if (pQN.length > 0) obj.ql = pQN;
 
 	showToast("Saving " + pN +" (" + pI + ")");
 	requestJson(obj);
@@ -2895,6 +2909,16 @@ function togglePcMode(fromB = false)
 	gId('bot').style.height = (pcMode && !cfg.comp.pcmbot) ? "0":"auto";
 	sCol('--bh', gId('bot').clientHeight + "px");
 	_C.style.width = (pcMode)?'100%':'400%';
+}
+
+function toggleAdvMode() {
+	advMode = !advMode;
+	localStorage.setItem('advm', advMode)
+	gId('buttonAdv').className = (advMode) ? "active":"";
+	gId('buttonSettings').style.display = (advMode) ? "inherit":"none";
+	gId('Segments').style.display = (advMode) ? "inherit":"none";
+	gId('segmentsTabButton').style.display = (advMode) ? "inherit":"none";
+	// gId('fxlist').children[1].style.display = (advMode) ? "inherit":"none";
 }
 
 function mergeDeep(target, ...sources)
